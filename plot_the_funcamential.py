@@ -106,7 +106,7 @@ def plot_the_funcamential(testspec, autolam=None, number_of_points_to_scan=49):
     def plot_results_in_matshow(datname, filename=''):
         save_it_path = 'current_output/thefuncamential'
         Path(save_it_path).mkdir(parents=True, exist_ok=True)
-        plt.matshow(np.flipud(datname), cmap=plt.cm.nipy_spectral_r, aspect = theaspect, extent=extent) # cmap=plt.cm.gist_yarg
+        plt.matshow(np.flipud(datname), cmap=plt.cm.nipy_spectral_r, aspect = theaspect, extent=extent)
         cbar = plt.colorbar(fraction=0.032*1/1.875, pad=0.04)
         cbar.ax.tick_params(labelsize=4) 
         plt.title(filename, fontsize=6)
