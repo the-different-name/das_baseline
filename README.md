@@ -17,16 +17,7 @@ It uses wavelet transform to estimate the characteristic flexibility level of th
 ```plot_the_funcamential.py``` -- plot the 2D functional, used to optimize the regularization parameters.
 
 
-If you have your test spectrum as *numpy-readable* *x-y* file (a text file with two columns separated with tabs or spaces), you could use the following lines:
-```python
-from fit_multipeak import * # load the script
-current_spectrum = np.genfromtxt('my_spectrum.txt') # read file to numpy format
-testspec = ExpSpec(current_spectrum[:,0], current_spectrum[:,1]) # convert the spectrum to an *object* of a specific format.
-_ = multipeak_fit_with_BL(testspec, saveresults = True) # fit it! The starting point will be generated automatically from *find_da_peaks* function.
-```
-
-The example above is a basic usage. You can set the starting point for the fit, specify the fitting range, control the display options etc.
-There is a test spectrum and an example file for the starting point. You can try the following:
+If you have your test spectrum as *numpy-readable* *x-y* file (a text file with two columns separated with tabs or spaces), you could try the following lines:
 ```python
 from expspec import *  # load the class
 import numpy as np  # necessary import
