@@ -6,14 +6,15 @@ Primary intended use is Raman spectroscopy. This is some modified version of Tik
 The function ```find_both_optimal_parameters``` finds the optimal lambda and p for the given spectrum.
 The function ```das_baseline``` is the main working function.
 
-## A few notes on the algorithm
+## A note on the algorithm
+The baseline function in this version was slightly modified to decouple the p and lambda parameters. This was done by dividing the vector of the weights to their r.m.s. (```w /= np.sqrt(np.mean(w**2)```). There are some other polishing improvements also.
+
+## On the search of the regularization parameters
 It uses wavelet transform to estimate the characteristic flexibility level of the baseline. With this, we can adjust the lambda. The asymmetry (p) is optimized based on the statistical analysis of the residuals.
 
 ## Structure:
 ```main.py``` -- Run it for the illustration. You can choose one of the three experimental sample spectra, given in the folder ```test_data```: graphene oxide Raman spectrum, hyper-Raman spectrum of water, Raman spectrum of achitin.
-
 ```expspec.py``` -- spectral class format, some supplementary function - probably you don't want to look at it.
-
 ```plot_the_funcamential.py``` -- plot the 2D functional, used to optimize the regularization parameters.
 
 
