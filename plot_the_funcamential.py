@@ -1,45 +1,22 @@
 """
-multipeak fit
-
-- whether lambda should be normalized by pixel width?
-- add timing if display > 0
-- add flexible lambda with scaling wrt pixel width and number
-- make the peaks only positive
+plot the funcamential
 """
 
-import sys
 import numpy as np
-from scipy.optimize import minimize_scalar, minimize
-from datetime import datetime
 
-from scipy.sparse.linalg import spsolve
-from copy import deepcopy
-from scipy import signal, stats, sparse
 
-sys.path.append('D:/scripts/python/expspec') # at lab
-# or / and
-sys.path.append('/driveD/scripts/python/expspec') # at Daruma
-
-from spectralfeature import voigt_asym, MultiPeak, CalcPeak
 import matplotlib.pyplot as plt
-from openpyxl import load_workbook, Workbook
 from expspec import *
-from itertools import cycle
 import colorsys
-from numpy.polynomial.polynomial import polyfit, polyval
-from scipy.stats import moment
-from scipy.optimize import Bounds
-
 import warnings
-warnings.simplefilter('ignore',sparse.SparseEfficiencyWarning)
 import matplotlib as mpl
 mpl.rcParams['figure.dpi'] = 300
 mpl.rcParams['figure.figsize'] = [6.0, 3.2]
 plt.style.use('ggplot')
 
-from csaps import csaps
+# mpl.rcParams['text.usetex'] = True
+# mpl.rcParams['text.latex.unicode'] = True
 
-# import pywt
 
 
 def _get_colors(num_colors):
@@ -109,11 +86,11 @@ def plot_the_funcamential(testspec, autolam=None, number_of_points_to_scan=49):
         plt.matshow(np.flipud(datname), cmap=plt.cm.nipy_spectral_r, aspect = theaspect, extent=extent)
         cbar = plt.colorbar(fraction=0.032*1/1.875, pad=0.04)
         cbar.ax.tick_params(labelsize=4) 
-        plt.title(filename, fontsize=6)
+        # plt.title(filename, fontsize=6)
         plt.xticks(x_label_list, x_label_list_string, fontsize=6)
         plt.yticks(y_label_list, y_label_list_string, fontsize=6)
-        plt.xlabel('als p', fontsize=6)
-        plt.ylabel('als lambda', fontsize=6)
+        plt.xlabel('p', fontsize=6)
+        plt.ylabel(r'$\lambda$', fontsize=6)
         plt.savefig(save_it_path + '/' + filename +'.png', bbox_inches='tight', transparent=True)
         plt.savefig(save_it_path + '/' + filename +'.eps', bbox_inches='tight', transparent=True)
         plt.show()
@@ -128,20 +105,21 @@ def plot_the_funcamential(testspec, autolam=None, number_of_points_to_scan=49):
 if __name__ == '__main__':
     
     # # graphene test spectrum:
-    testspec = np.genfromtxt('test_data/graphene_oxide_Raman_spectrum.txt')
-    testspec = ExpSpec(testspec[:,0], testspec[:,1]); testspec.working_range = (400, 3700)
-    plot_the_funcamential(testspec, autolam=3.29e9)
+    # testspec = np.genfromtxt('test_data/graphene_oxide_Raman_spectrum.txt')
+    # testspec = ExpSpec(testspec[:,0], testspec[:,1]); testspec.working_range = (400, 3700)
+    # plot_the_funcamential(testspec, autolam=1.24e+09)
 
     # # aq test spectrum:
-    # testspec = np.genfromtxt('test_data/water_hyper_Raman_spectrum.txt')
-    # testspec = ExpSpec(testspec[:,0], testspec[:,1])
+    testspec = np.genfromtxt('test_data/water_hyper_Raman_spectrum.txt')
+    testspec = ExpSpec(testspec[:,0], testspec[:,1])
+    plot_the_funcamential(testspec, autolam=3.05e+06)
     # olam,op = find_both_optimal_parameters(testspec)
 
 
     # # achitin test spectrum:
     # testspec = np.genfromtxt('test_data/achitin_Raman_spectrum.txt')
     # testspec = ExpSpec(testspec[:,0], testspec[:,1]); testspec.working_range = (200, 3700)    
-    # olam,op = find_both_optimal_parameters(testspec)
+    # plot_the_funcamential(testspec, autolam=7.92e+07)
     
 
 

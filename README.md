@@ -1,7 +1,7 @@
 
 ## Double-auto spectral baseline (das baseline)
 
-Primary intended use is Raman spectroscopy. This is some modified version of Tikhonov regularization with two parameters: lambda (smoothing) and p (asymmetry). The starting point of the algorithm is described in the JRS paper: https://doi.org/10.1002/jrs.5952
+Primary intended use is Raman spectroscopy. This is some modified version of Tikhonov regularization with two parameters: lambda (smoothing) and p (asymmetry). The starting point and main ideas of the algorithm are described in the JRS paper: https://doi.org/10.1002/jrs.5952
 
 The function ```find_both_optimal_parameters``` finds the optimal lambda and p for the given spectrum.
 The function ```das_baseline``` is the main working function.

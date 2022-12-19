@@ -59,8 +59,8 @@ def morphological_noise(rawspectrum, mollification_width='auto'):
     mollification_width by default is ~1/16th of the number-of-ponts"""
     thenoise = (rawspectrum - moving_average_molification(rawspectrum, mollification_width))
     rmsnoise = np.std(thenoise)
-    #@Test&Debug: #  
-    print ('morphological noise is ', rmsnoise)
+    # #@Test&Debug: #  
+    # print ('morphological noise is ', rmsnoise)
     return rmsnoise
 
 
@@ -104,10 +104,12 @@ def das_baseline(thespectrum, # , x_axis=None,
     y_sm_2d = np.gradient(y_sm_1d)
 
     # weighting function for the 2nd derivative:
-    y_sm_2d_decay = np.std(y_sm_2d) / 2
+    # y_sm_2d_decay = np.std(y_sm_2d) / 2
+    y_sm_2d_decay = ( np.mean(y_sm_2d**4) )**0.25 / 4
     weifunc2D = np.exp(-y_sm_2d**2/2/y_sm_2d_decay**2)
     # weighting function for the 1st derivative:
-    y_sm_1d_decay = np.std(y_sm_1d)
+    # y_sm_1d_decay = np.std(y_sm_1d) / 2
+    y_sm_1d_decay = ( np.mean((y_sm_1d-np.mean(y_sm_1d))**4) )**0.25 / 4
     weifunc1D = np.exp(-(y_sm_1d-np.mean(y_sm_1d))**2/2/y_sm_1d_decay**2)
     
     # weighting function for both derivatives:
@@ -117,7 +119,7 @@ def das_baseline(thespectrum, # , x_axis=None,
     # weifunc[0:zero_step_struct_el] = 1; weifunc[-zero_step_struct_el:] = 1
 
     # estimate the peak height for the screening by the amplitude
-    peakscreen_amplitude = np.std(thespectrum.y-y_sm) 
+    peakscreen_amplitude = np.std(thespectrum.y-y_sm) / 2
 
     L = len(thespectrum.y)
     D = sparse.diags([1,-2,1],[0,-1,-2], shape=(L,L-2))
@@ -130,15 +132,20 @@ def das_baseline(thespectrum, # , x_axis=None,
         z = spsolve(Z, w*thespectrum.y)
         w = als_p_weight * weifunc * np.exp(-((thespectrum.y-z)/peakscreen_amplitude)**2/2) * (thespectrum.y > z) + (1-als_p_weight) * (thespectrum.y < z)
         w /= np.sqrt(np.mean(w**2))
-        peakscreen_amplitude = np.std(thespectrum.y-z)
+        # peakscreen_amplitude = np.std(thespectrum.y-z) / 2
+        peakscreen_amplitude = ( np.mean((thespectrum.y-z)**4 ) )**0.25 / 4
         y_sm = moving_average_molification(thespectrum.y-z, zero_step_struct_el, 16) #
         y_sm_1d = np.gradient(y_sm)
         y_sm_2d = np.gradient(y_sm_1d)
-        y_sm_2d_decay = np.std(y_sm_2d) / 2
+        # y_sm_2d_decay = np.std(y_sm_2d) / 2
+        y_sm_2d_decay = ( np.mean(y_sm_2d**4) )**0.25 / 4
         weifunc2D = np.exp(-y_sm_2d**2/2/y_sm_2d_decay**2)
-        y_sm_1d_decay = np.std(y_sm_1d)
+        # y_sm_1d_decay = np.std(y_sm_1d) / 2
+        y_sm_1d_decay = ( np.mean((y_sm_1d-np.mean(y_sm_1d))**4) )**0.25 / 4
         weifunc1D = np.exp(-(y_sm_1d-np.mean(y_sm_1d))**2/2/y_sm_1d_decay**2)
         weifunc = weifunc1D*weifunc2D
+        # optional: exclude from screening the edges of the spectrum
+        # weifunc[0:zero_step_struct_el] = 1; weifunc[-zero_step_struct_el:] = 1
     baseline = z
     datweight = weifunc * np.exp(-((thespectrum.y-z)/peakscreen_amplitude)**2/2)
     #@Test&Debug: # 
@@ -179,7 +186,7 @@ def spectral_powers(thespectrum,
                     return_only_d2bl=True,
                     check_if_apodized=True,
                     gridlength=129,
-                    display=0,):
+                    display=0):
     """
     If you need a detailed output, set return_only_d2bl=False
     
@@ -206,17 +213,6 @@ def spectral_powers(thespectrum,
     # compute wavelet transform:
     coef = signal.cwt(thespectrum_detrended, signal.ricker, scalegrid_adv)
 
-    if not return_only_d2bl:
-        theaspect = len(thespectrum.y)/len(scalegrid_adv)/1.875
-        plt.matshow(coef, cmap=plt.cm.nipy_spectral_r, aspect = theaspect)
-        plt.title('wavelet coefficients', fontsize=7)
-        plt.ylabel('wvl scale / px', fontsize=7)
-        plt.xlabel('pixel number', fontsize=7)
-        plt.xticks(fontsize=7)
-        plt.yticks(fontsize=7)
-        plt.grid(color='0.4', linestyle=':', linewidth=0.5)
-        plt.savefig(save_it_path + '/wavelet_coefficients.png', bbox_inches='tight', transparent=True)
-        plt.show()
 
     # integrate the reconstruction wrt scalegrid_adv (y-axis):
     reconstruction_factor = np.ones_like(scalegrid_adv) / scalegrid_adv**0.5
@@ -229,7 +225,12 @@ def spectral_powers(thespectrum,
     # find the cutoff for the baseline:
     #  it gatta be something like the maximum negative gradient of the spectral powers
     spectral_power_gradient = np.gradient(spectral_powers) / np.gradient(np.log(scalegrid_adv)) # <<<<<<<<<<< this one !11
-    baseline_cutoff_index  = np.argmin(spectral_power_gradient)
+    # for the baseline, we are intereted in the scale > 1/16 of the spectral range    
+    valid_idx = np.where(scalegrid_adv > scalegrid_adv[-1] / 16)[0]
+    baseline_cutoff_index  = valid_idx[spectral_power_gradient[valid_idx].argmin()]
+    # alternative criterion:
+    # baseline_cutoff_index  = valid_idx[spectral_powers[valid_idx].argmax()]
+
     # find the cutoff for the noise:
     #  it gatta be something like 1/4 of the maximum positive gradient of the spectral powers
     noise_cutoff_index_from_wavelets = np.argmax(np.gradient(spectral_powers)) / 4
@@ -275,12 +276,35 @@ def spectral_powers(thespectrum,
         print('noise reconstruction cutoff =', scalegrid_adv[noise_cutoff_index])
         print('baseline reconstruction cutoff =', scalegrid_adv[baseline_cutoff_index])
         print('rms 2nd derivative of BL: {:.2e}'.format(D2BL))
+        
+        # display wavelet coefficients
+        theaspect = len(thespectrum.y)/len(scalegrid_adv)/1.875
+        plt.matshow(coef, cmap=plt.cm.nipy_spectral_r, aspect = theaspect)
+        # plt.title('wavelet coefficients', fontsize=7)
+        plt.ylabel('wavelet scale / px', fontsize=7)
+        plt.xlabel('pixel number', fontsize=7)
+        locs, _ = plt.yticks()
+        locs = locs[locs <= len(scalegrid_adv)]
+        locs = locs[locs >= 0]
+        labels = scalegrid_adv[locs.astype(int)]
+        labels = (np.floor(labels)).astype(int)
+        plt.yticks(locs, labels)
+        plt.yticks(fontsize=7)
+        plt.axhline(noise_cutoff_index, ls=':', color='white', lw=2)
+        plt.axhline(baseline_cutoff_index, ls=':', color='white', lw=2)
+        plt.grid(color='0.4', linestyle=':', linewidth=0.5)
+        ax = plt.gca()
+        ax.tick_params(axis="x", bottom=True, top=True, labelbottom=True, labeltop=False)
+        plt.xticks(fontsize=7)
+        plt.savefig(save_it_path + '/wavelet_coefficients.png', bbox_inches='tight', transparent=True)
+        plt.show()
+
 
         plt.semilogx(scalegrid_adv, spectral_powers, 'o', mfc='none', ms = 4, mec='k')
         plt.axvline(scalegrid_adv[noise_cutoff_index], ymin=0.04, ymax=0.988, ls=':', c='r', lw=2)
         plt.axvline(scalegrid_adv[baseline_cutoff_index], ymin=0.04, ymax=0.988, ls=':', c='r', lw=2)
         plt.tick_params(labelleft=False)
-        plt.title('spectral powers', fontsize=8)
+        # plt.title('spectral powers', fontsize=8)
         plt.xlabel('wavelet scale / px')
         plt.ylabel('spectral power')
         plt.grid(color='0.4', linestyle=':', linewidth=0.5)
@@ -291,7 +315,7 @@ def spectral_powers(thespectrum,
         plt.axvline(scalegrid_adv[noise_cutoff_index], ymin=0.04, ymax=0.988, ls=':', c='r', lw=2)
         plt.axvline(scalegrid_adv[baseline_cutoff_index], ymin=0.04, ymax=0.988, ls=':', c='r', lw=2)
         plt.tick_params(labelleft=False)
-        plt.title('spectral power gradient', fontsize=8)
+        # plt.title('spectral power gradient', fontsize=8)
         plt.xlabel('wavelet scale / px')
         plt.ylabel('gradient')
         plt.grid(color='0.4', linestyle=':', linewidth=0.5)
@@ -304,7 +328,8 @@ def spectral_powers(thespectrum,
         plt.plot(thespectrum.x, noise_reconstructed, 'r', linewidth=1, label='noise reconstructed')
         plt.legend(fontsize=8, framealpha=0.09)
         plt.tick_params(labelleft=False)
-        plt.title('wavelet decomposition', fontsize=8)
+        # plt.title('wavelet decomposition', fontsize=8)
+        # plt.ylim(-80, 640) # for HR of water
         plt.xlabel('wavenumber  / cm$^{-1}$')
         plt.ylabel('intensity')
         plt.grid(color='0.4', linestyle=':', linewidth=0.5)
@@ -338,15 +363,23 @@ def find_both_optimal_parameters(testspec, display=2):
                                                    return_weights=True)
         current_residuals = testspec.y - current_bl
         current_residuals_weighted = (testspec.y - current_bl) * current_weights
-        negativeresiduals = current_residuals * (testspec.y < current_bl) #  / sum(testspec.y < current_bl)
+        negativeresiduals = current_residuals_weighted * (testspec.y < current_bl)
         d2bl_current = (np.mean(np.diff(current_bl, 2)**2))**0.5
         neg_residuals_without_positive = negativeresiduals[np.where(testspec.y < current_bl)]
         weighted_positive_residuals_without_negative = current_residuals_weighted[np.where(testspec.y > current_bl)]
         positive_median = np.median(weighted_positive_residuals_without_negative)
+        # positive_median = np.mean(weighted_positive_residuals_without_negative)
         m4lvl_of_negativeresiduals_good = ( np.mean(neg_residuals_without_positive**4) )**0.25
         thefuncamential_blpart = 2 * (d2bl-d2bl_current)**2 / (d2bl**2 + d2bl_current**2)
         thefuncamential_ppart = 2 * (positive_median-m4lvl_of_negativeresiduals_good)**2 / (positive_median**2+m4lvl_of_negativeresiduals_good**2)
         thefuncamential = thefuncamential_blpart + thefuncamential_ppart
+        
+        # # @test&debug:
+        # if display > 1:
+        #     print('positive_median = {:.3e}'.format(positive_median))
+        #     print('positive_mean = {:.3e}'.format(np.mean(weighted_positive_residuals_without_negative)))
+        #     print('m4lvl_of_negativeresiduals_good = {:.3e}'.format(m4lvl_of_negativeresiduals_good))
+        
         return thefuncamential
 
 
